@@ -7,16 +7,20 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(ggmap)
+library(lubridate)
+library(zipcode)
 
 ### READ IN ALL THE FILES ###
 a <- read.dbf("accid.DBF")
 A <- read.dbf("lookups/acc.dbf")
 O <- read.dbf("lookups/occ.DBF")
 H <- read.dbf("lookups/hzs.dbf")
+
 o <- read.dbf("osha.DBF")
-S <- read.dbf("lookups/scc.dbf")
 N <- read.dbf("lookups/naics.dbf")
-v <- read.dbf("viol.DBF")
+Si <- read.dbf("lookups/sic.dbf")
+
+data("zipcode")
 
 
 ### CLEAN a, Accident DATAFRAME ###
@@ -81,13 +85,28 @@ names(a)[ncol(a)] <- "EVENT"
 a <- distinct(a)
 
 ### CLEAN o, Osha ###
+o <- select(o, c(ACTIVITYNO,ESTABNAME,SITEADD, OWNERTYPE,OPENDATE, CLOSEDATE,NAICS,SIC,SITEZIP))
+levels(o$OWNERTYPE) <- c("Private", "Local Gov't", "State Gov't", "Fed Gov't")
+o$OPENDATE[o$OPENDATE == 0] <- NA
+o$CLOSEDATE[o$CLOSEDATE == 0] <- NA
+o$OPENDATE <- ymd(o$OPENDATE)
+o$CLOSEDATE <- ymd(o$CLOSEDATE)
+o$NAICS[o$NAICS == "000000"] <- NA
+o$SITEZIP[o$SITEZIP == "00000"] <- NA
+o <- left_join(o, N, by="NAICS")
+o <- select(o, -c(NAICS))
+o <- left_join(o, Si, by="SIC")
+o <- select(o, -c(SIC))
+# zipcode
+zipcode <- filter(zipcode, state =="MA")
+zipcode <- select(zipcode, -c(state))
+names(zipcode)[1] <- "SITEZIP"
+o <- left_join(o, zipcode, by="SITEZIP")
+o <- select(o, -c(SITEZIP,SITECITY,SITECNTY))
+o <- distinct(o)
 
 ### COMBINE TO MAKE ONE TABLE FOR Accidents ###
-Accidents <- NULL
-
-
-
-
+Accidents <- full_join(a, o, by = "ACTIVITYNO")
 
 
 ### VISUALISE a ###
