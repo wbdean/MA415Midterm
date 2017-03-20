@@ -107,36 +107,63 @@ o <- distinct(o)
 
 ### COMBINE TO MAKE ONE TABLE FOR Accidents ###
 Accidents <- full_join(a, o, by = "ACTIVITYNO")
+save(Accidents, file="Accidents.Rda" )
+rm(list = ls())
+load("Accidents.Rda")
+
+### GET Map of MA ###
+map <- get_map(location='massachusetts', zoom=8)
+m <- ggmap(map)
 
 
-### VISUALISE a ###
+### VISUALISE Accidents  ###
+
 # Age
-Age <- filter(a, !is.na(AGE))
+Age <- filter(Accidents, !is.na(AGE))
 g <- ggplot(Age, aes(AGE))
-g + geom_histogram(aes(color = DEGREE), binwidth = 7) + facet_wrap(~DEGREE)
-g + geom_histogram(aes(color = TASK), binwidth = 7) + facet_wrap(~TASK)
+g + geom_histogram(aes(fill = DEGREE), binwidth = 7) + facet_wrap(~DEGREE)
+g + geom_histogram(aes(fill = TASK), binwidth = 7) + facet_wrap(~TASK)
+m + geom_point(data=Age, aes(longitude, latitude,color=AGE),size=3,na.rm=T) +
+  scale_color_gradient(low="dark blue", high="white") 
 
 # Occupation
-Occ <- a[ a$OCCUPATION %in%  names(table(a$OCCUPATION))[table(a$OCCUPATION) >10] , ]
+Occ <- Accidents[ Accidents$OCCUPATION %in%  names(tail(sort(table(Accidents$OCCUPATION)),10)), ]
 Occ <- filter(Occ, Occ$OCCUPATION != "OCCUPATION NOT REPORTED")
-f <- ggplot(Occ, aes(OCCUPATION, color = OCCUPATION))
+f <- ggplot(Occ, aes(OCCUPATION, fill = OCCUPATION))
 f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
+ggplot(data=Occ, aes(OPENDATE, color=OCCUPATION)) + geom_density(alpha=.25, size = 1.5)
+m + geom_point(data=Occ, na.rm = T, aes(longitude, latitude, color=OCCUPATION),size = 3)
 
 # Body Part
-Body <- a[a$BODYPART %in% names(table(a$BODYPART))[table(a$BODYPART) > 25], ]
+Body <- Accidents[Accidents$BODYPART %in% names(tail(sort(table(Accidents$BODYPART)),10)), ]
 f <- ggplot(Body, aes(BODYPART))
 f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
 f + geom_bar() + facet_wrap(~TASK) + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
 f + geom_bar() + facet_wrap(~DEGREE) + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
 
 # Nature
-Nat <- a[a$NATURE %in% names(table(a$NATURE))[table(a$NATURE) > 25], ]
+Nat <- Accidents[Accidents$NATURE %in% names(tail(sort(table(Accidents$NATURE)),10)), ]
 f <- ggplot(Nat, aes(NATURE))
 f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
 f + geom_bar() + facet_wrap(~DEGREE) + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
 
 # HAZ SUB
-Hz <- a[a$HAZSUB %in% names(table(a$HAZSUB))[table(a$HAZSUB) > 5], ]
+Hz <- Accidents[Accidents$HAZSUB %in% names(tail(sort(table(Accidents$HAZSUB)),10)), ]
 f <- ggplot(Hz, aes(HAZSUB))
 f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
 f + geom_bar() + facet_wrap(~DEGREE) + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
+
+# City
+City <- Accidents[Accidents$city %in% names(tail(sort(table(Accidents$city)),10)),]
+ggplot(data=City, aes(OPENDATE, color=city)) + geom_density()
+m + geom_point(data=City, aes(longitude, latitude, color = city), size = 4)
+
+# Company
+Comp <- Accidents[Accidents$ESTABNAME %in% names(tail(sort(table(Accidents$ESTABNAME)),10)),]
+ggplot(data=Comp, aes(ESTABNAME)) + geom_bar()+ theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
+m + geom_point(data=Comp,aes(longitude,latitude,color=ESTABNAME),size=3,na.rm = T)
+ggplot(data=Comp,aes(OPENDATE,color=ESTABNAME)) + geom_density()
+
+# Site
+Add <- Accidents[Accidents$SITEADD %in% names(tail(sort(table(Accidents$SITEADD)),10)),]
+ggplot(Add,aes(OPENDATE,color=SITEADD)) + geom_density()
