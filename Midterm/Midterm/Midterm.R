@@ -131,6 +131,8 @@ Occ <- Accidents[ Accidents$OCCUPATION %in%  names(tail(sort(table(Accidents$OCC
 Occ <- filter(Occ, Occ$OCCUPATION != "OCCUPATION NOT REPORTED")
 f <- ggplot(Occ, aes(OCCUPATION, fill = OCCUPATION))
 f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
+f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) + 
+  facet_wrap(~DEGREE) + 
 ggplot(data=Occ, aes(OPENDATE, color=OCCUPATION)) + geom_density(alpha=.25, size = 1.5)
 m + geom_point(data=Occ, na.rm = T, aes(longitude, latitude, color=OCCUPATION),size = 3)
 
