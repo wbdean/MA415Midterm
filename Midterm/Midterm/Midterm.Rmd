@@ -1,0 +1,59 @@
+---
+title: "OSHA Data Clean-up -- MA 415 Midterm"
+author: "William Dean"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(foreign)
+require(dplyr)
+require(tidyr)
+require(ggplot2)
+require(ggmap)
+require(lubridate)
+require(zipcode)
+
+### READ IN ALL THE FILES ###
+a <- read.dbf("accid.DBF")
+A <- read.dbf("lookups/acc.dbf")
+O <- read.dbf("lookups/occ.DBF")
+H <- read.dbf("lookups/hzs.dbf")
+
+o <- read.dbf("osha.DBF")
+N <- read.dbf("lookups/naics.dbf")
+Si <- read.dbf("lookups/sic.dbf")
+
+data("zipcode")
+```
+
+## Objective 
+
+The OSHA data presents Health & Safety Regulations and all workplace injuries and accidents. This data is ready and available, however it is very messy and is not able to be interpreted easily.  The goal of this project is to clean this OSHA dataframes given with the intent of looking for the most dangerous place to work in the state of Massachusetts.
+
+
+## Problems with OSHA Data
+
+### Unnecessary Atributes
+At first glance, the dataframe that represents the accidents in MA is very messy and has many attributes that would not be helpful to looking into the most dangerous places to work in Massachusetts, so these were the first to be eliminated.
+
+```{r echo=FALSE }
+head(a,3)
+```
+A Person's name or the RELINSP (An inpections key) doesn't give much use to look at dangerous locations and are taken out to simplify the data.
+```{r echo=FALSE}
+### CLEAN a, Accident DATAFRAME ###
+a <- select(a, -c(NAME,RELINSP, SITESTATE))
+head(a, 3)
+```
+### Getting Rid of Incorrect Information (NA Values)
+Although this is better, there is much information that is stored as placeholder values when they should be NA. For example, an OCC_CODE of "000" does not refer to an Occupation and should be NA. Taking out all instances of bad values cleans the data more.
+```{r echo=FALSE}
+a$AGE[a$AGE == 0] <- NA
+a$OCC_CODE[a$OCC_CODE == "000"] <- NA
+a$HAZSUB[a$HAZSUB == "0000"] <- NA
+a$TASK[a$TASK == "0"] <- NA
+a$DEGREE[a$DEGREE == "0"] <- NA
+head(a,3)
+```
+

@@ -2,13 +2,13 @@
 # wdean@bu.edu
 # Midterm
 
-library(foreign)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(ggmap)
-library(lubridate)
-library(zipcode)
+require(foreign)
+require(dplyr)
+require(tidyr)
+require(ggplot2)
+require(ggmap)
+require(lubridate)
+require(zipcode)
 
 ### READ IN ALL THE FILES ###
 a <- read.dbf("accid.DBF")
@@ -106,7 +106,7 @@ o <- select(o, -c(SITEZIP,SITECITY,SITECNTY))
 o <- distinct(o)
 
 ### COMBINE TO MAKE ONE TABLE FOR Accidents ###
-Accidents <- full_join(a, o, by = "ACTIVITYNO")
+Accidents <- left_join(a, o, by = "ACTIVITYNO")
 save(Accidents, file="Accidents.Rda" )
 rm(list = ls())
 load("Accidents.Rda")
@@ -132,7 +132,7 @@ Occ <- filter(Occ, Occ$OCCUPATION != "OCCUPATION NOT REPORTED")
 f <- ggplot(Occ, aes(OCCUPATION, fill = OCCUPATION))
 f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
 f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) + 
-  facet_wrap(~DEGREE) + 
+  facet_wrap(~DEGREE) + coord_flip()
 ggplot(data=Occ, aes(OPENDATE, color=OCCUPATION)) + geom_density(alpha=.25, size = 1.5)
 m + geom_point(data=Occ, na.rm = T, aes(longitude, latitude, color=OCCUPATION),size = 3)
 
@@ -159,13 +159,37 @@ f + geom_bar() + facet_wrap(~DEGREE) + theme(axis.text.x=element_text(angle=90,h
 City <- Accidents[Accidents$city %in% names(tail(sort(table(Accidents$city)),10)),]
 ggplot(data=City, aes(OPENDATE, color=city)) + geom_density()
 m + geom_point(data=City, aes(longitude, latitude, color = city), size = 4)
+City <- as.data.frame(table(Accidents$city))
+ggplot(City,aes(Freq)) + geom_density()
 
 # Company
 Comp <- Accidents[Accidents$ESTABNAME %in% names(tail(sort(table(Accidents$ESTABNAME)),10)),]
-ggplot(data=Comp, aes(ESTABNAME)) + geom_bar()+ theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
+ggplot(data=Comp, aes(ESTABNAME,fill=ESTABNAME)) + geom_bar()+ theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
+
 m + geom_point(data=Comp,aes(longitude,latitude,color=ESTABNAME),size=3,na.rm = T)
 ggplot(data=Comp,aes(OPENDATE,color=ESTABNAME)) + geom_density()
 
+MostComp <- Accidents %>% group_by(year(OPENDATE)) %>% summarize(ESTABNAME = names(which.max(table(ESTABNAME))))
+MostComp <- MostComp$ESTABNAME
+Comp <- Accidents[Accidents$ESTABNAME %in% MostComp, ]
+ggplot(data=Comp,aes(OPENDATE,color=ESTABNAME)) + geom_density()
+
+Comp <- as.data.frame(table(Accidents$ESTABNAME))
+ggplot(Comp,aes(Freq)) + geom_histogram()
+Comp <- filter(Comp, Freq > 2)
+ggplot(Comp,aes(Freq)) + geom_histogram()
+
 # Site
 Add <- Accidents[Accidents$SITEADD %in% names(tail(sort(table(Accidents$SITEADD)),10)),]
-ggplot(Add,aes(OPENDATE,color=SITEADD)) + geom_density()
+ggplot(Add,aes(OPENDATE,color=SITEADD)) + geom_histogram()
+ggplot(Add,aes(OPENDATE,color=ESTABNAME)) + geom_density() + facet_wrap(~ESTABNAME,scales="free_y")
+
+# Industry
+Indust <- Accidents[Accidents$INDUSTRY %in% names(tail(sort(table(Accidents$INDUSTRY)),10)),]
+ggplot(Indust,aes(INDUSTRY,fill=INDUSTRY)) + geom_bar()+ theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
+
+Indust <- Indust[Indust$ESTABNAME %in% names(tail(sort(table(Accidents$ESTABNAME)),10)),]
+ggplot(Indust,aes(INDUSTRY,fill=INDUSTRY)) + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) +
+  facet_wrap(~ESTABNAME) + coord_flip()
+
+
