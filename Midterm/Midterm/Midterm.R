@@ -141,6 +141,11 @@ Event <- 1:nrow(Time)
 Time <- cbind(Time, Event)
 ggplot(Time, aes(OPENDATE,Event)) + geom_line() + ggtitle("Accidents over Time")
 
+Death <- Accidents %>% filter(DEGREE == "Fatal") %>% arrange(OPENDATE)
+Event <- 1:nrow(Death)
+Death <- cbind(Death, Event)
+ggplot(Death,aes(OPENDATE,Event)) + geom_line() + ggtitle("Fatal Accidents over Time")
+
 # Age
 Age <- filter(Accidents, !is.na(AGE))
 g <- ggplot(Age, aes(AGE))
