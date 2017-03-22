@@ -24,12 +24,15 @@ data("zipcode")
 
 
 ### CLEAN a, Accident DATAFRAME ###
-a <- select(a, -c(NAME,RELINSP, SITESTATE))
-a$AGE[a$AGE == 0] <- NA
+a <- select(a, -c(NAME,RELINSP, SITESTATE)) # SELECT ATTRIBUTES
+
+a$AGE[a$AGE == 0] <- NA                     #Clear all NA
 a$OCC_CODE[a$OCC_CODE == "000"] <- NA
 a$HAZSUB[a$HAZSUB == "0000"] <- NA
 a$TASK[a$TASK == "0"] <- NA
 a$DEGREE[a$DEGREE == "0"] <- NA
+
+                                            # Relabel Values
 levels(a$DEGREE) <- c(NA, "Fatal", "Hospitalized", "Non-Hospitalized")
 levels(a$TASK) <- c(NA, "Regular", "Irregular")
 
@@ -85,14 +88,18 @@ names(a)[ncol(a)] <- "EVENT"
 a <- distinct(a)
 
 ### CLEAN o, Osha ###
+                                            # SELECT ATTRIBUTE
 o <- select(o, c(ACTIVITYNO,ESTABNAME,SITEADD, OWNERTYPE,OPENDATE, CLOSEDATE,NAICS,SIC,SITEZIP))
-levels(o$OWNERTYPE) <- c("Private", "Local Gov't", "State Gov't", "Fed Gov't")
-o$OPENDATE[o$OPENDATE == 0] <- NA
+
+o$OPENDATE[o$OPENDATE == 0] <- NA           # ORGANIZE AND GET RID OF NA
 o$CLOSEDATE[o$CLOSEDATE == 0] <- NA
 o$OPENDATE <- ymd(o$OPENDATE)
 o$CLOSEDATE <- ymd(o$CLOSEDATE)
 o$NAICS[o$NAICS == "000000"] <- NA
 o$SITEZIP[o$SITEZIP == "00000"] <- NA
+
+                                            # RELABEL AND DO JOIN
+levels(o$OWNERTYPE) <- c("Private", "Local Gov't", "State Gov't", "Fed Gov't")
 o <- left_join(o, N, by="NAICS")
 o <- select(o, -c(NAICS))
 o <- left_join(o, Si, by="SIC")
@@ -102,7 +109,7 @@ zipcode <- filter(zipcode, state =="MA")
 zipcode <- select(zipcode, -c(state))
 names(zipcode)[1] <- "SITEZIP"
 o <- left_join(o, zipcode, by="SITEZIP")
-o <- select(o, -c(SITEZIP,SITECITY,SITECNTY))
+o <- select(o, -c(SITEZIP))
 o <- distinct(o)
 o <- mutate(o, Decade= year(OPENDATE) %% 100) # Group by Decade
 o <- mutate(o, Decade=Decade - (Decade %% 10))
@@ -145,7 +152,7 @@ Occ <- Occ[ Occ$OCCUPATION %in%  names(tail(sort(table(Occ$OCCUPATION)),10)), ]
 f <- ggplot(Occ, aes(OCCUPATION, fill = OCCUPATION))
 f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) +
   ggtitle("Top 10 Most Accident-Prone Occupations in MA")
-f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) + 
+f + geom_bar() +  
   facet_wrap(~DEGREE) + coord_flip() +
   ggtitle("Results from Top 10 Most Accident-Prone Occupations in MA")
 ggplot(data=Occ, aes(OPENDATE, color=OCCUPATION)) + geom_density(alpha=.25, size = 1.5) +
@@ -191,7 +198,7 @@ ggplot(data=Comp, aes(ESTABNAME,fill=ESTABNAME)) + geom_bar()+ theme(axis.text.x
 m + geom_point(data=Comp,aes(longitude,latitude,color=ESTABNAME),size=4,na.rm = T) +
   ggtitle("Location(s) of Companies with Most Accidents")
 
-ggplot(data=Comp,aes(OPENDATE,color=ESTABNAME)) + geom_density() +
+ggplot(data=Comp,aes(OPENDATE,color=ESTABNAME)) + geom_density() + facet_wrap(~ESTABNAME,scales="free_y") +
   ggtitle("Time Occurances of Accidents by Top 10 Most Accident-Prone Companies")
 
 Comp <- filter(Accidents, Decade=="90s") %>% select(ESTABNAME)
@@ -211,5 +218,7 @@ Indust <- Accidents[Accidents$INDUSTRY %in% names(tail(sort(table(Accidents$INDU
 ggplot(Indust,aes(INDUSTRY,fill=INDUSTRY)) + geom_bar()+ coord_flip() +
   facet_wrap(~Decade) + ggtitle("Top 10 Frequent Industries with Accidents over the Decades")
 
+# Decade
+m + geom_point(data=Accidents,aes(longitude,latitude,color=Decade),na.rm=T, size =3) 
 
 

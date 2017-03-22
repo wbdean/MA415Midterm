@@ -209,5 +209,89 @@ map <- get_map(location='massachusetts', zoom=8)
 m <- ggmap(map)
 ```
 
+## Bar Graphs
+
+Since there are so many discrete variables, we can explore them with the use of bar graphs. Let's first consider the 10 most frequent __Occupations__ in our data:
+
+```{r echo=FALSE,fig.width=10}
+Occ <- filter(Accidents, Accidents$OCCUPATION != "OCCUPATION NOT REPORTED")
+Occ <- Occ[ Occ$OCCUPATION %in%  names(tail(sort(table(Occ$OCCUPATION)),10)), ]
+f <- ggplot(Occ, aes(OCCUPATION, fill = OCCUPATION))
+f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) +
+  ggtitle("Top 10 Most Accident-Prone Occupations in MA")
+```
+
+The plot above gives incite to which occupations lead to the most amount of injuries, but it does not tell us the severity of those injuries.
+
+Because of that, consider the same set of data, but grouped by another variable, __Degree__ of Accidents. Here we can consider the outcome of the 10 most frequent Occupations in the data:
+
+```{r echo=FALSE,fig.width=10}
+f + geom_bar() +  
+  facet_wrap(~DEGREE) + coord_flip() +
+  ggtitle("Results from Top 10 Most Accident-Prone Occupations in MA")
+```
+
+We are able to consider if the most accident-prone jobs tend to have serious injuries or just many none serious injuries.  
+
+
+## Time Series -- Time Occurances
+
+Using the Accident's Date, we can explore when and how many accidents happen. Consider still the Top 10 Accident-Prone Occupations. We can see when theses accidents happened:
+
+```{r echo=FALSE, fig.width=10}
+ggplot(data=Occ, aes(OPENDATE, color=OCCUPATION)) + geom_density(alpha=.25, size = 1.5) +
+  ggtitle("Occurences of Top 10 Occupations -- 1980s to 2005")
+```
+
+Many of these results skew either left or right, so it may be considered if these are disappearing career paths or rising, more dangerous careers. Perhaps the job are changing.
+
+Let's now explore another Attribute over time, Company names.
+
+Sub-setting by the 10 Most Occuring Companies, we can see when in time these Accident-Prone companies had these Accidents:
+
+```{r echo=FALSE,fig.width=10}
+Comp <- Accidents[Accidents$ESTABNAME %in% names(tail(sort(table(Accidents$ESTABNAME)),10)),]
+ggplot(data=Comp,aes(OPENDATE,color=ESTABNAME)) + geom_density(size = 1.5) + facet_wrap(~ESTABNAME,scales="free_y") +
+  ggtitle("Time Occurances of Accidents by Top 10 Most Accident-Prone Companies")
+```
+
+All of these companies had many accidents but the time over which they had these accidents differ and can be visualized with the plots. Some have smaller accidents throughout time while some have large accidents that occur not so often.
+
+## Histograms
+
+Histograms can be used to see the distributions of some of our discrete variables. Consider the accidents that occur per city in the whole time frame:
+
+```{r echo=FALSE,fig.width=10} 
+City <- as.data.frame(table(Accidents$city))
+ggplot(City,aes(Freq)) + geom_histogram(bins=45) + ggtitle("Distribution of Number of Accidents per City")
+```
+
+Over a time interval, we are able to see that lower amounts of accidents are more likely to occur. Cities with more accidents are less frequent and could be accounted by being larger, more industrial places.
+
+## Map Graphics
+
+With the use of location, we can visualize where in the state these accidents occured. We are able to see where the cities with the most accidents are. 
+
+```{r echo=FALSE, fig.width=10}
+City <- Accidents[Accidents$city %in% names(tail(sort(table(Accidents$city)),10)),]
+m + geom_point(data=City, aes(longitude, latitude, color = city), size = 4) +
+  ggtitle("Location of Cities with Top 10 Most Accidents")
+```
+
+We can see that many of these location are near Boston, but also near cities where there is a lot of industry compared to smaller places.
+
+Another option is to see where in Massachusetts had the most accidents throughout time. To make it easier to see, let's group accidents by the decade in which they occured. We can see whether accidents are moving to new locations throughout the state.
+
+```{r echo=FALSE, fig.width=10}
+m + geom_point(data=Accidents,aes(longitude,latitude,color=Decade),na.rm=T, size =3) + ggtitle("Location of Accidents over the Decades")
+```
+
+There could be a trend that is moving accidents toward Boston.
 
 # Final Remarks
+
+By cleaning up the data but also bringing in the most information we can about each accident, we get one data frame that is easy to understand and ready to explore.  At the beginning, our data of interest was scattered across many tables and had many values that were incorrect but, by using R, we are able to bring the data to one place.
+
+The data is versatile in the many ways it can be visually explored. The ways to explore the data that are above are just a subset of all possible. The data can be see through many of the dicrete variables, the frequency of them, the time occurance of accidents, and/or geographical locations of accidents.  
+
+The data that was prepared can be taken in many directions to discover the most dangerous place to work, and to uncover the multifaceted stories behind each.
