@@ -39,21 +39,28 @@ The OSHA data presents Health & Safety Regulations and all workplace injuries an
 # Problems with the OSHA Data -- OSHA Clean-Up
 
 ## Accident Table
+
 The Accident Table from OSHA is a record of the accidents and the situation behind each accident. There is a lot of information as can be seen in the display of it below but it needs to be cleaned up to before exploring it and anything more.
+
 ```{r echo=FALSE }
 kable(head(a,3),format="markdown")
 ```
 
 ### Unnecessary Atributes
+
 At first glance, the dataframe that represents the accidents in MA is very messy and has many attributes that would not be helpful to looking into the most dangerous places to work in Massachusetts, so these were the first to be eliminated.
 A Person's name or the RELINSP (An inpections key) doesn't give much use to look at dangerous locations and are taken out to simplify the data.
+
 ```{r echo=FALSE}
 ### CLEAN a, Accident DATAFRAME ###
 a <- select(a, -c(NAME,RELINSP, SITESTATE))
 kable(head(a, 3),format="markdown")
 ```
+
 ### Getting Rid of Incorrect Information (NA Values)
+
 Although this is better, there is much information that is stored as placeholder values when they should be NA. For example, an OCC_CODE of "000" does not refer to an Occupation and should be NA. Taking out all instances of bad values cleans the data more.
+
 ```{r echo=FALSE}
 a$AGE[a$AGE == 0] <- NA
 a$OCC_CODE[a$OCC_CODE == "000"] <- NA
@@ -64,8 +71,10 @@ kable(head(a, 3),format="markdown")
 ```
 
 ### Give Appropriate Labels
+
 There is a lot of information in the table that is not stored in this table but in other tables that would be better suited to have all in one location. Bringing this information to one table makes it easier to understand what the data means and will make exploration and analysis easier.
 The resulting table is much cleaner and can be seen below.
+
 ```{r echo=FALSE, message=FALSE, include=FALSE}
 levels(a$DEGREE) <- c(NA, "Fatal", "Hospitalized", "Non-Hospitalized")
 levels(a$TASK) <- c(NA, "Regular", "Irregular")
@@ -125,20 +134,28 @@ kable(head(a, 3),format="markdown")
 ```
 
 ###Final Version
+
 This provides much a much cleaner version of the original accident table but there exists rows which have the same values everywhere that are redundant.
 Taking them out givens a final version of the table we started with.
+
 ```{r echo=FALSE}
 a <- distinct(a)
 kable(head(a, 3),format="markdown")
 ```
+
 ## OSHA Table
+
 The OSHA Table contains the information for all of the Inpections that have happened which is able to give us more information about the accidents in Massachusetts. Our goal is to combine the important information from the OSHA table to the Accident table we have already made to how a condensed table with all the accident information. However, we run into a lot of the same problems as the Accident table so the OSHA table has to be cleaned and preped before joining. The given OSHA table is too large and messy and can be seen below:
+
 ```{r echo=FALSE}
 kable(head(o[,1:13],3),format="markdown")
 ```
+
 ### Cleaning the Table
+
 After taking only the information we want, getting rid of incorrect values which should be NAs, and relabeling the keys stored as integers with more discriptive and accurate labels, we come of with a version of the OSHA table that will provide important information about what happened at each inspection.
 A final version of the OSHA table before combining with the Accident table can be seen below and is easier to understand the information compared to how it was originally presented.
+
 ```{r echo=FALSE,include=FALSE}
 o <- select(o, c(ACTIVITYNO,ESTABNAME,SITEADD, OWNERTYPE,OPENDATE, CLOSEDATE,NAICS,SIC,SITEZIP))
 levels(o$OWNERTYPE) <- c("Private", "Local Gov't", "State Gov't", "Fed Gov't")
@@ -172,6 +189,7 @@ kable(head(o,3),format="markdown")
 ## Complete Accidents Table
 We have two tables with information about the accidents in MA, but now we want to store it all in one table. Using a left join, we can keep all the information about the accidents from the accident table, but we can also incorporate any additional information that the OSHA table will give about each accident.
 Joining the tables results in one single table that has all the information from the data frames which would be helpful in exploring the most dangerous places in Massachusetts.
+
 ```{r echo=FALSE} 
 Accidents <- left_join(a, o, by = "ACTIVITYNO")
 kable(head(Accidents,5),format="markdown")
@@ -189,6 +207,7 @@ m <- ggmap(map)
 When looking for the most dangerous places to work in Massachusetts, one may begin to wonder what kind of Occupations could be the most accident prone. 
 
 For instance, below is the Top 10 Most Accident-Prone Occupations from the data.
+
 ```{r echo=FALSE,fig.width=10}
 Occ <- Accidents[ Accidents$OCCUPATION %in%  names(tail(sort(table(Accidents$OCCUPATION)),10)), ]
 Occ <- filter(Occ, Occ$OCCUPATION != "OCCUPATION NOT REPORTED")
@@ -198,13 +217,15 @@ f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) +
 ```
 
 We can also consider what are the results of theses most accident-prone occupation when there is an accident. 
+
 ```{r echo=FALSE,fig.width=10}
 f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) + 
   facet_wrap(~DEGREE) + coord_flip() +
   ggtitle("Results from Top 10 Most Accident-Prone Occupations in MA")
 ```
 
-We can use the data to consider where in time these accidents happened. There are fluxuations in the frequency 
+We can use the data to consider where in time these accidents happened. There are fluxuations in the frequency.
+
 ```{r echo=FALSE,fid.width=10}
 ggplot(data=Occ, aes(OPENDATE, color=OCCUPATION)) + geom_density(alpha=.25, size = 1.5) +
   ggtitle("Occurences of Top 10 Occupations -- 1980s to 2005")
