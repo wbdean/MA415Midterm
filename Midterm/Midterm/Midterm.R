@@ -135,6 +135,12 @@ m <- ggmap(map)
 
 ### VISUALISE Accidents  ###
 
+# Time
+Time <- arrange(Accidents, OPENDATE)
+Event <- 1:nrow(Time)
+Time <- cbind(Time, Event)
+ggplot(Time, aes(OPENDATE,Event)) + geom_line() + ggtitle("Accidents over Time")
+
 # Age
 Age <- filter(Accidents, !is.na(AGE))
 g <- ggplot(Age, aes(AGE))
