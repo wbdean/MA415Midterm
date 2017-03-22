@@ -192,65 +192,22 @@ Joining the tables results in one single table that has all the information from
 
 ```{r echo=FALSE} 
 Accidents <- left_join(a, o, by = "ACTIVITYNO")
+# Any Last minute fixes
+Accidents$ESTABNAME[Accidents$ESTABNAME == "BOSTON EDISON CO"] <- "BOSTON EDISON COMPANY"
+Accidents$OCCUPATION[Accidents$OCCUPATION == "CONSTRUCTION TRADES, N.E.C."] <- "CONSTRUCTION LABORERS"
+Accidents <- distinct(Accidents)
 kable(head(Accidents,5),format="markdown")
 ```
 
 # Exploring the Data
-Now that we have a Table with all the useful information about all the accidents that happened and have it organized, we can begin to explore the accidents in Massachusetts.
+
+Now that we have a Table with all the useful information about all the accidents that happened and have it organized, we can begin to explore the accidents in Massachusetts. Because of the our tidy data which brings in many types of attributes for each accidents, we can produce many visualizations from the data. Here are a few types:
 
 ```{r echo=FALSE,include=FALSE}
 ### GET Map of MA ###
 map <- get_map(location='massachusetts', zoom=8)
 m <- ggmap(map)
 ```
-## Dangerous Occupations
-When looking for the most dangerous places to work in Massachusetts, one may begin to wonder what kind of Occupations could be the most accident prone. 
 
-For instance, below is the Top 10 Most Accident-Prone Occupations from the data.
-
-```{r echo=FALSE,fig.width=10}
-Occ <- Accidents[ Accidents$OCCUPATION %in%  names(tail(sort(table(Accidents$OCCUPATION)),10)), ]
-Occ <- filter(Occ, Occ$OCCUPATION != "OCCUPATION NOT REPORTED")
-f <- ggplot(Occ, aes(OCCUPATION, fill = OCCUPATION))
-f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) +
-  ggtitle("Top 10 Most Accident-Prone Occupations in MA")
-```
-
-We can also consider what are the results of theses most accident-prone occupation when there is an accident. 
-
-```{r echo=FALSE,fig.width=10}
-f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) + 
-  facet_wrap(~DEGREE) + coord_flip() +
-  ggtitle("Results from Top 10 Most Accident-Prone Occupations in MA")
-```
-
-We can use the data to consider where in time these accidents happened. There are fluxuations in the frequency.
-
-```{r echo=FALSE,fid.width=10}
-ggplot(data=Occ, aes(OPENDATE, color=OCCUPATION)) + geom_density(alpha=.25, size = 1.5) +
-  ggtitle("Occurences of Top 10 Occupations -- 1980s to 2005")
-```
-
-Visualize where in the state this accidents happened from the Top 10 most Accident-Prone Occupations.
-```{r echo=FALSE,fid.width=10}
-m + geom_point(data=Occ, na.rm = T, aes(longitude, latitude, color=OCCUPATION),size = 3)
-```
-
-## Dangerous Companies
-
-Frequency of Companies in the data can be used to see how many accidents (of all magnitude) can be expected for some timeframe. For instance:
-
-```{r echo=FALSE}
-Comp <- filter(Accidents, Decade=="90s") %>% select(ESTABNAME)
-Comp <- as.data.frame(table(Comp))
-ggplot(Comp, aes(Freq)) + geom_bar() + ggtitle("Distribution of Number of Accidents in the 1990s")
-```
-
-This does not look so good so consider when the number of accidents is over two in the decade.
-
-```{r echo=FALSE}
-Comp <- filter(Comp, Freq > 2)
-ggplot(Comp,aes(Freq)) + geom_bar() + ggtitle("Distribution of Number of Accident over 2 in the 1990s")
-```
 
 # Final Remarks

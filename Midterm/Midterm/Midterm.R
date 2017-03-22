@@ -112,6 +112,10 @@ o$Decade <- factor(o$Decade, levels = c("70s", "80s", "90s", "00s"))
 
 ### COMBINE TO MAKE ONE TABLE FOR Accidents ###
 Accidents <- left_join(a, o, by = "ACTIVITYNO")
+# Any Last minute fixes
+Accidents$ESTABNAME[Accidents$ESTABNAME == "BOSTON EDISON CO"] <- "BOSTON EDISON COMPANY"
+Accidents$OCCUPATION[Accidents$OCCUPATION == "CONSTRUCTION TRADES, N.E.C."] <- "CONSTRUCTION LABORERS"
+Accidents <- distinct(Accidents)
 
 save(Accidents, file="Accidents.Rda" )
 rm(list = ls())
@@ -127,14 +131,17 @@ m <- ggmap(map)
 # Age
 Age <- filter(Accidents, !is.na(AGE))
 g <- ggplot(Age, aes(AGE))
-g + geom_histogram(aes(fill = DEGREE), binwidth = 7) + facet_wrap(~DEGREE)
-g + geom_histogram(aes(fill = TASK), binwidth = 7) + facet_wrap(~TASK)
+g + geom_histogram(aes(fill = DEGREE), binwidth = 7) + facet_wrap(~DEGREE) + 
+  ggtitle("Age Distribution over all Degrees of Accidents")
+g + geom_histogram(aes(fill = TASK), binwidth = 7) + facet_wrap(~TASK) +
+  ggtitle("Age Distribution for Accidents with Different Task Levels")
 m + geom_point(data=Age, aes(longitude, latitude,color=AGE),size=3,na.rm=T) +
-  scale_color_gradient(low="dark blue", high="white") 
+  scale_color_gradient(low="dark blue", high="white") +
+  ggtitle("Ages of People in Accidents throughout MA")
 
 # Occupation
-Occ <- Accidents[ Accidents$OCCUPATION %in%  names(tail(sort(table(Accidents$OCCUPATION)),10)), ]
-Occ <- filter(Occ, Occ$OCCUPATION != "OCCUPATION NOT REPORTED")
+Occ <- filter(Accidents, Accidents$OCCUPATION != "OCCUPATION NOT REPORTED")
+Occ <- Occ[ Occ$OCCUPATION %in%  names(tail(sort(table(Occ$OCCUPATION)),10)), ]
 f <- ggplot(Occ, aes(OCCUPATION, fill = OCCUPATION))
 f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) +
   ggtitle("Top 10 Most Accident-Prone Occupations in MA")
@@ -143,59 +150,66 @@ f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) +
   ggtitle("Results from Top 10 Most Accident-Prone Occupations in MA")
 ggplot(data=Occ, aes(OPENDATE, color=OCCUPATION)) + geom_density(alpha=.25, size = 1.5) +
   ggtitle("Occurences of Top 10 Occupations -- 1980s to 2005")
-m + geom_point(data=Occ, na.rm = T, aes(longitude, latitude, color=OCCUPATION),size = 3)
+m + geom_point(data=Occ, na.rm = T, aes(longitude, latitude, color=OCCUPATION),size = 3) + 
+  ggtitle("Locations of Top 10 Most Frequent Occupations with Accidents")
 
 # Body Part
 Body <- Accidents[Accidents$BODYPART %in% names(tail(sort(table(Accidents$BODYPART)),10)), ]
-f <- ggplot(Body, aes(BODYPART))
-f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
-f + geom_bar() + facet_wrap(~TASK) + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
-f + geom_bar() + facet_wrap(~DEGREE) + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
+f <- ggplot(Body, aes(BODYPART, fill=BODYPART))
+f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) + 
+  ggtitle("Frequency of Top 10 Most Injuried Body Parts")
+f + geom_bar() + facet_wrap(~DEGREE) + coord_flip() + 
+  ggtitle("Frequency of Top 10 Most Injuried Body Parts by Degree of Injury")
 
 # Nature
-Nat <- Accidents[Accidents$NATURE %in% names(tail(sort(table(Accidents$NATURE)),10)), ]
-f <- ggplot(Nat, aes(NATURE))
-f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
-f + geom_bar() + facet_wrap(~DEGREE) + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
+Nat <- filter(Accidents, Accidents$NATURE != "OTHER")
+Nat <- Nat[Nat$NATURE %in% names(tail(sort(table(Nat$NATURE)),10)), ]
+f <- ggplot(Nat, aes(NATURE,fill=NATURE))
+f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) + 
+  ggtitle("Top 10 Most Frequent Cause of Accidents")
 
 # HAZ SUB
 Hz <- Accidents[Accidents$HAZSUB %in% names(tail(sort(table(Accidents$HAZSUB)),10)), ]
-f <- ggplot(Hz, aes(HAZSUB))
-f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
-f + geom_bar() + facet_wrap(~DEGREE) + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
+f <- ggplot(Hz, aes(HAZSUB,fill=HAZSUB))
+f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) + 
+  ggtitle("Top 10 Most Frequent Hazardous Substances")
 
 # City
 City <- Accidents[Accidents$city %in% names(tail(sort(table(Accidents$city)),10)),]
-ggplot(data=City, aes(OPENDATE, color=city)) + geom_density()
-m + geom_point(data=City, aes(longitude, latitude, color = city), size = 4)
+ggplot(data=City, aes(OPENDATE, color=city)) + geom_density(size=3) + 
+  ggtitle("Time Occurance of Cities with Top 10 Most Accidents")
+m + geom_point(data=City, aes(longitude, latitude, color = city), size = 4) +
+  ggtitle("Location of Cities with Top 10 Most Accidents")
 City <- as.data.frame(table(Accidents$city))
-ggplot(City,aes(Freq)) + geom_density()
+ggplot(City,aes(Freq)) + geom_histogram(bins=45) + ggtitle("Distribution of Number of Accidents per City")
 
 # Company
 Comp <- Accidents[Accidents$ESTABNAME %in% names(tail(sort(table(Accidents$ESTABNAME)),10)),]
-ggplot(data=Comp, aes(ESTABNAME,fill=ESTABNAME)) + geom_bar()+ theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
+ggplot(data=Comp, aes(ESTABNAME,fill=ESTABNAME)) + geom_bar()+ theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) +
+  ggtitle("Top 10 Companies with the Most Accidents")
 
-m + geom_point(data=Comp,aes(longitude,latitude,color=ESTABNAME),size=3,na.rm = T)
-ggplot(data=Comp,aes(OPENDATE,color=ESTABNAME)) + geom_density()
+m + geom_point(data=Comp,aes(longitude,latitude,color=ESTABNAME),size=4,na.rm = T) +
+  ggtitle("Location(s) of Companies with Most Accidents")
+
+ggplot(data=Comp,aes(OPENDATE,color=ESTABNAME)) + geom_density() +
+  ggtitle("Time Occurances of Accidents by Top 10 Most Accident-Prone Companies")
 
 Comp <- filter(Accidents, Decade=="90s") %>% select(ESTABNAME)
 Comp <- as.data.frame(table(Comp))
-ggplot(Comp, aes(Freq)) + geom_bar() + ggtitle("Distribution of Number of Accidents in the 1990s")
+ggplot(Comp, aes(Freq)) + geom_histogram(bins=25) + ggtitle("Distribution of Number of Accidents per Company in the 1990s")
 
 Comp <- filter(Comp, Freq > 2)
-ggplot(Comp,aes(Freq)) + geom_bar() + ggtitle("Distribution of Number of Accident over 2 in the 1990s")
+ggplot(Comp,aes(Freq)) + geom_histogram(bins=10) + ggtitle("Distribution of Number of Accident over 2 per Company in the 1990s")
 
 # Site
 Add <- Accidents[Accidents$SITEADD %in% names(tail(sort(table(Accidents$SITEADD)),10)),]
-ggplot(Add,aes(OPENDATE,color=SITEADD)) + geom_histogram()
-ggplot(Add,aes(OPENDATE,color=ESTABNAME)) + geom_density() + facet_wrap(~ESTABNAME,scales="free_y")
+ggplot(Add,aes(OPENDATE,color=SITEADD)) + geom_density() + facet_wrap(~SITEADD,scales="free_y")+
+  ggtitle("Distribution of 10 Most Frequent Addresses -- 1970s to 2000s")
 
 # Industry
 Indust <- Accidents[Accidents$INDUSTRY %in% names(tail(sort(table(Accidents$INDUSTRY)),10)),]
-ggplot(Indust,aes(INDUSTRY,fill=INDUSTRY)) + geom_bar()+ theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5))
+ggplot(Indust,aes(INDUSTRY,fill=INDUSTRY)) + geom_bar()+ coord_flip() +
+  facet_wrap(~Decade) + ggtitle("Top 10 Frequent Industries with Accidents over the Decades")
 
-Indust <- Indust[Indust$ESTABNAME %in% names(tail(sort(table(Accidents$ESTABNAME)),10)),]
-ggplot(Indust,aes(INDUSTRY,fill=INDUSTRY)) + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) +
-  facet_wrap(~ESTABNAME) + coord_flip()
 
 
