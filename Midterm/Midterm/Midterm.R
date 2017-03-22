@@ -219,6 +219,7 @@ ggplot(Indust,aes(INDUSTRY,fill=INDUSTRY)) + geom_bar()+ coord_flip() +
   facet_wrap(~Decade) + ggtitle("Top 10 Frequent Industries with Accidents over the Decades")
 
 # Decade
-m + geom_point(data=Accidents,aes(longitude,latitude,color=Decade),na.rm=T, size =3) 
+m + geom_point(data=Accidents,aes(longitude,latitude,color=Decade),na.rm=T, size =3) + 
+  ggtitle("Location of Accidents over the Decades")
 
 
