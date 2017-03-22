@@ -1,11 +1,15 @@
 ---
-title: "OSHA Data Clean-up -- MA 415 Midterm"
+title: "OSHA Data Clean-Up -- MA 415 Midterm"
 author: "William Dean"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    theme: united
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+require(knitr)
 require(foreign)
 require(dplyr)
 require(tidyr)
@@ -27,24 +31,26 @@ Si <- read.dbf("lookups/sic.dbf")
 data("zipcode")
 ```
 
-## Objective 
+# Objective 
 
-The OSHA data presents Health & Safety Regulations and all workplace injuries and accidents. This data is ready and available, however it is very messy and is not able to be interpreted easily.  The goal of this project is to clean this OSHA dataframes given with the intent of looking for the most dangerous place to work in the state of Massachusetts.
+The OSHA data presents Health & Safety Regulations and all workplace injuries and accidents. This data is ready and available, however it is very messy and is not able to be interpreted easily.  The goal of this project is to clean this OSHA dataframes given with the intent of looking for the most dangerous place to work in the state of Massachusetts and provide insite of the data through Data Exploration.
 
 
-## Problems with OSHA Data
+# Problems with the OSHA Data -- OSHA Clean-Up
+
+## Accident Table
+The Accident Table from OSHA is a record of the accidents and the situation behind each accident. There is a lot of information as can be seen in the display of it below but it needs to be cleaned up to before exploring it and anything more.
+```{r echo=FALSE }
+kable(head(a,3),format="markdown")
+```
 
 ### Unnecessary Atributes
 At first glance, the dataframe that represents the accidents in MA is very messy and has many attributes that would not be helpful to looking into the most dangerous places to work in Massachusetts, so these were the first to be eliminated.
-
-```{r echo=FALSE }
-head(a,3)
-```
 A Person's name or the RELINSP (An inpections key) doesn't give much use to look at dangerous locations and are taken out to simplify the data.
 ```{r echo=FALSE}
 ### CLEAN a, Accident DATAFRAME ###
 a <- select(a, -c(NAME,RELINSP, SITESTATE))
-head(a, 3)
+kable(head(a, 3),format="markdown")
 ```
 ### Getting Rid of Incorrect Information (NA Values)
 Although this is better, there is much information that is stored as placeholder values when they should be NA. For example, an OCC_CODE of "000" does not refer to an Occupation and should be NA. Taking out all instances of bad values cleans the data more.
@@ -54,6 +60,176 @@ a$OCC_CODE[a$OCC_CODE == "000"] <- NA
 a$HAZSUB[a$HAZSUB == "0000"] <- NA
 a$TASK[a$TASK == "0"] <- NA
 a$DEGREE[a$DEGREE == "0"] <- NA
-head(a,3)
+kable(head(a, 3),format="markdown")
 ```
 
+### Give Appropriate Labels
+There is a lot of information in the table that is not stored in this table but in other tables that would be better suited to have all in one location. Bringing this information to one table makes it easier to understand what the data means and will make exploration and analysis easier.
+The resulting table is much cleaner and can be seen below.
+```{r echo=FALSE, message=FALSE, include=FALSE}
+levels(a$DEGREE) <- c(NA, "Fatal", "Hospitalized", "Non-Hospitalized")
+levels(a$TASK) <- c(NA, "Regular", "Irregular")
+
+names(O)[1] <- "OCC_CODE" # Prep for left join
+a <- left_join(a, O, by = "OCC_CODE") 
+a <- select(a, -c(OCC_CODE))
+names(H)[1] <- "HAZSUB" # Prep for left join
+a <- left_join(a, H, by = "HAZSUB")
+a <- select(a, -c(HAZSUB))
+names(a)[ncol(a)] <- "HAZSUB"
+
+Hum <- filter(A, CATEGORY == "HUMAN-FAC")
+names(Hum)[2] <- "HUMAN"
+Hum <- select(Hum, -c(CATEGORY))
+a <- left_join(a, Hum, by = "HUMAN")
+a <- select(a, -c(HUMAN))
+names(a)[ncol(a)] <- "HUMFACT"
+
+Bod <- filter(A, CATEGORY == "PART-BODY")
+names(Bod)[2] <- "BODYPART"
+Bod <- select(Bod, -c(CATEGORY))
+a <- left_join(a, Bod, by = "BODYPART")
+a <- select(a, -c(BODYPART))
+names(a)[ncol(a)] <- "BODYPART"
+
+Nat <- filter(A, CATEGORY == "NATUR-INJ")
+names(Nat)[2] <- "NATURE"
+Nat <- select(Nat, -c(CATEGORY))
+a <- left_join(a, Nat, by = "NATURE")
+a <- select(a, -c(NATURE))
+names(a)[ncol(a)] <- "NATURE"
+
+Source <- filter(A, CATEGORY == "SOURC-INJ")
+names(Source)[2] <- "SOURCE"
+Source <- select(Source, -c(CATEGORY))
+a <- left_join(a, Source, by = "SOURCE")
+a <- select(a, -c(SOURCE))
+names(a)[ncol(a)] <- "SOURCE"
+
+Envir <- filter(A, CATEGORY == "ENVIR-FAC")
+names(Envir)[2] <- "ENVIRON"
+Envir <- select(Envir, -c(CATEGORY))
+a <- left_join(a, Envir, by = "ENVIRON")
+a <- select(a, -c(ENVIRON))
+names(a)[ncol(a)] <- "ENVIRON"
+
+Event <- filter(A, CATEGORY == "EVENT-TYP")
+names(Event)[2] <- "EVENT"
+Event <- select(Event, -c(CATEGORY))
+a <- left_join(a, Event, by = "EVENT")
+a <- select(a, -c(EVENT))
+names(a)[ncol(a)] <- "EVENT"
+```
+```{r echo=FALSE}
+kable(head(a, 3),format="markdown")
+```
+
+###Final Version
+This provides much a much cleaner version of the original accident table but there exists rows which have the same values everywhere that are redundant.
+Taking them out givens a final version of the table we started with.
+```{r echo=FALSE}
+a <- distinct(a)
+kable(head(a, 3),format="markdown")
+```
+## OSHA Table
+The OSHA Table contains the information for all of the Inpections that have happened which is able to give us more information about the accidents in Massachusetts. Our goal is to combine the important information from the OSHA table to the Accident table we have already made to how a condensed table with all the accident information. However, we run into a lot of the same problems as the Accident table so the OSHA table has to be cleaned and preped before joining. The given OSHA table is too large and messy and can be seen below:
+```{r echo=FALSE}
+kable(head(o[,1:13],3),format="markdown")
+```
+### Cleaning the Table
+After taking only the information we want, getting rid of incorrect values which should be NAs, and relabeling the keys stored as integers with more discriptive and accurate labels, we come of with a version of the OSHA table that will provide important information about what happened at each inspection.
+A final version of the OSHA table before combining with the Accident table can be seen below and is easier to understand the information compared to how it was originally presented.
+```{r echo=FALSE,include=FALSE}
+o <- select(o, c(ACTIVITYNO,ESTABNAME,SITEADD, OWNERTYPE,OPENDATE, CLOSEDATE,NAICS,SIC,SITEZIP))
+levels(o$OWNERTYPE) <- c("Private", "Local Gov't", "State Gov't", "Fed Gov't")
+o$OPENDATE[o$OPENDATE == 0] <- NA
+o$CLOSEDATE[o$CLOSEDATE == 0] <- NA
+o$OPENDATE <- ymd(o$OPENDATE)
+o$CLOSEDATE <- ymd(o$CLOSEDATE)
+o$NAICS[o$NAICS == "000000"] <- NA
+o$SITEZIP[o$SITEZIP == "00000"] <- NA
+o <- left_join(o, N, by="NAICS")
+o <- select(o, -c(NAICS))
+o <- left_join(o, Si, by="SIC")
+o <- select(o, -c(SIC))
+# zipcode
+zipcode <- filter(zipcode, state =="MA")
+zipcode <- select(zipcode, -c(state))
+names(zipcode)[1] <- "SITEZIP"
+o <- left_join(o, zipcode, by="SITEZIP")
+o <- select(o, -c(SITEZIP))
+o <- distinct(o)
+o <- mutate(o, Decade= year(OPENDATE) %% 100) # Group by Decade
+o <- mutate(o, Decade=Decade - (Decade %% 10))
+o$Decade <- as.factor(o$Decade)
+levels(o$Decade) <- c("00s","70s", "80s", "90s")
+o$Decade <- factor(o$Decade, levels = c("70s", "80s", "90s", "00s"))
+```
+```{r echo=FALSE} 
+kable(head(o,3),format="markdown")
+```
+
+## Complete Accidents Table
+We have two tables with information about the accidents in MA, but now we want to store it all in one table. Using a left join, we can keep all the information about the accidents from the accident table, but we can also incorporate any additional information that the OSHA table will give about each accident.
+Joining the tables results in one single table that has all the information from the data frames which would be helpful in exploring the most dangerous places in Massachusetts.
+```{r echo=FALSE} 
+Accidents <- left_join(a, o, by = "ACTIVITYNO")
+kable(head(Accidents,5),format="markdown")
+```
+
+# Exploring the Data
+Now that we have a Table with all the useful information about all the accidents that happened and have it organized, we can begin to explore the accidents in Massachusetts.
+
+```{r echo=FALSE,include=FALSE}
+### GET Map of MA ###
+map <- get_map(location='massachusetts', zoom=8)
+m <- ggmap(map)
+```
+## Dangerous Occupations
+When looking for the most dangerous places to work in Massachusetts, one may begin to wonder what kind of Occupations could be the most accident prone. 
+
+For instance, below is the Top 10 Most Accident-Prone Occupations from the data.
+```{r echo=FALSE,fig.width=10}
+Occ <- Accidents[ Accidents$OCCUPATION %in%  names(tail(sort(table(Accidents$OCCUPATION)),10)), ]
+Occ <- filter(Occ, Occ$OCCUPATION != "OCCUPATION NOT REPORTED")
+f <- ggplot(Occ, aes(OCCUPATION, fill = OCCUPATION))
+f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) +
+  ggtitle("Top 10 Most Accident-Prone Occupations in MA")
+```
+
+We can also consider what are the results of theses most accident-prone occupation when there is an accident. 
+```{r echo=FALSE,fig.width=10}
+f + geom_bar() + theme(axis.text.x=element_text(angle=90,hjust=.5,vjust=0.5)) + 
+  facet_wrap(~DEGREE) + coord_flip() +
+  ggtitle("Results from Top 10 Most Accident-Prone Occupations in MA")
+```
+
+We can use the data to consider where in time these accidents happened. There are fluxuations in the frequency 
+```{r echo=FALSE,fid.width=10}
+ggplot(data=Occ, aes(OPENDATE, color=OCCUPATION)) + geom_density(alpha=.25, size = 1.5) +
+  ggtitle("Occurences of Top 10 Occupations -- 1980s to 2005")
+```
+
+Visualize where in the state this accidents happened from the Top 10 most Accident-Prone Occupations.
+```{r echo=FALSE,fid.width=10}
+m + geom_point(data=Occ, na.rm = T, aes(longitude, latitude, color=OCCUPATION),size = 3)
+```
+
+## Dangerous Companies
+
+Frequency of Companies in the data can be used to see how many accidents (of all magnitude) can be expected for some timeframe. For instance:
+
+```{r echo=FALSE}
+Comp <- filter(Accidents, Decade=="90s") %>% select(ESTABNAME)
+Comp <- as.data.frame(table(Comp))
+ggplot(Comp, aes(Freq)) + geom_bar() + ggtitle("Distribution of Number of Accidents in the 1990s")
+```
+
+This does not look so good so consider when the number of accidents is over two in the decade.
+
+```{r echo=FALSE}
+Comp <- filter(Comp, Freq > 2)
+ggplot(Comp,aes(Freq)) + geom_bar() + ggtitle("Distribution of Number of Accident over 2 in the 1990s")
+```
+
+# Final Remarks
