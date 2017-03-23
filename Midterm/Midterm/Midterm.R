@@ -144,7 +144,21 @@ ggplot(Time, aes(OPENDATE,Event)) + geom_line() + ggtitle("Accidents over Time")
 Death <- Accidents %>% filter(DEGREE == "Fatal") %>% arrange(OPENDATE)
 Event <- 1:nrow(Death)
 Death <- cbind(Death, Event)
-ggplot(Death,aes(OPENDATE,Event)) + geom_line() + ggtitle("Fatal Accidents over Time")
+
+Hos <- Accidents %>% filter(DEGREE == "Hospitalized") %>% arrange(OPENDATE)
+Event <- 1:nrow(Hos)
+Hos <- cbind(Hos,Event)
+
+nHos <- Accidents %>% filter(DEGREE == "Non-Hospitalized") %>% arrange(OPENDATE)
+Event <- 1:nrow(nHos)
+nHos <- cbind(nHos,Event)
+
+ggplot(Time, aes(OPENDATE,Event)) + geom_point(size=2) + 
+  ggtitle("Type of Accidents over Time") + 
+  geom_point(data=Death,aes(OPENDATE,Event,color=DEGREE),size=2) +
+  geom_point(data=Hos,aes(OPENDATE,Event,color=DEGREE),size=2) +
+  geom_point(data=nHos,aes(OPENDATE,Event,color=DEGREE),size=2) +
+  ggtitle("Type of Accidents over Time")
 
 # Age
 Age <- filter(Accidents, !is.na(AGE))
